@@ -3,9 +3,13 @@
 //
 #include <iostream>
 #include "Types.hpp"
+#include "Simulator.hpp"
+Simulator Si;
 using namespace std;
 int main(){
-    cout << "dsg" << endl;
+    int x;
+    cin >> hex >> x;
+    Si.gettokentype(x);
     return 0;
 }
 

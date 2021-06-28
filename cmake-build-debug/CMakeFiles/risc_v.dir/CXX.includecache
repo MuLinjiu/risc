@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/Simulator.hpp
+Types.hpp
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/Types.hpp
+
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/Types.hpp
+
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/main.cpp
+iostream
+-
+Types.hpp
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/Types.hpp
+Simulator.hpp
+/mnt/d/HXL/FIRST(2)/risc-main/risc-main/Simulator.hpp
+

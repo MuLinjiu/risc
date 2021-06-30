@@ -18,15 +18,19 @@ void INPUT(){
         }
         else {
             stringstream stringstream2(s);
-            while (stringstream2 >> a[0] >> a[1] >> a[2] >> a[3]) {
+            while (stringstream2 >> hex >> a[0] ) {
                 //reverse(a, a + 4);
-                for (int i = 0; i < 4; i++)memory[pos++] = a[i];
+                memory[pos++] = a[0];
             }
         }
     }
 }
-int main(){
 
+int main(){
+    //freopen(".data", "r", stdin);
+    //freopen("2.txt","w",stdout);
+    INPUT();
+    Si.RUN();
     return 0;
 }
 

@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.19)
-project(risc_v)
+cmake_minimum_required(VERSION 3.16)
+project(code)
 
 set(CMAKE_CXX_STANDARD 14)
-add_executable(risc_v
+add_executable(code
         main.cpp Types.hpp Simulator.hpp)

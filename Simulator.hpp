@@ -14,8 +14,6 @@ unsigned int a[100];
 class Simulator{
 public:
     int sext(int n,unsigned int x_){
-//        as = as | (~((1 << length) - 1));
-//        return as;
         if (x_ & (1u << (n - 1))){
             return x_ - (1u << n);
         } else return x_;
@@ -30,54 +28,40 @@ public:
         if(opt == 99) {
             switch (x1) {
                 case 0:
-                    //printf("BEQ");
                     return BEQ;
                 case 1:
-                    //printf("BNE");
                     return BNE;
                 case 4:
-                    //printf("BLT");
                     return BLT;
                 case 5:
-                    //printf("BGE");
                     return BGE;
                 case 6:
-                    //printf("BLTU");
                     return BLTU;
                 case 7:
-                    //printf("BGEU");
                     return BGEU;
                 default: throw("e");
             }
         }else if(opt == 3){
             switch (x1) {
                 case 0:
-                    //printf("LB");
                     return LB;
                 case 1:
-                    //printf("LH");
                     return LH;
                 case 2:
-                    //printf("LW");
                     return LW;
                 case 4:
-                    //printf("LBU");
                     return LBU;
                 case 5:
-                    //printf("LHU");
                     return LHU;
                 default:throw("e");
             }
         }else if(opt == 35){
             switch(x1){
                 case 0:
-                    //printf("SB");
                     return SB;
                 case 1:
-                    //printf("SH");
                     return SH;
                 case 2:
-                    //printf("SW");
                     return SW;
                 default: throw("d");
             }
@@ -275,6 +259,14 @@ public:
             }
         }
     }
+    struct BUFFER{
+        BIG_TYPE BT;
+        type t;
+        unsigned int command;
+        unsigned int ans;
+        unsigned int offset;
+        int len = -1;
+    };
     bool IF(){
         //unsigned int command = (memory[pc] << 24) + (memory[pc + 1] << 16) + (memory[pc + 2] << 8) + memory[pc + 3];
         unsigned int command = (memory[pc + 3] << 24) + (memory[pc + 2] << 16) + (memory[pc + 1] << 8) + memory[pc];
@@ -282,22 +274,28 @@ public:
             printf("%u",(x[10] & 255));
             return false;
         }
-        ID(command);
+        BUFFER tmp;
+        tmp.command = command;
+        ID(tmp);
         pc += 4;
         ////printf("%u\t%u\t",command,pc);
         //cout << (unsigned)x[12] << "\t" << (unsigned)x[11] <<endl;
         return true;
     }
-    void ID(unsigned int x_){
-        BIG_TYPE BT = gettokenbigtype(x_);
-        EX(BT,x_);
+    void ID(BUFFER B){
+        BIG_TYPE BT = gettokenbigtype(B.command);
+        B.BT = BT;
+        EX(B);
     }
-    void EX(BIG_TYPE BT,unsigned int command){
+    void EX(BUFFER B_){
+        BIG_TYPE BT = B_.BT;
+        unsigned int command = B_.command;
         if(BT == R){
             unsigned int rd = (command >> 7) & 31;
             unsigned int rs1 = (command >> 15) & 31;
             unsigned int rs2 = (command >> 20) & 31;
             type t = gettokentype(command);
+            B_.t = t;
             int ans = 0;
             if(t == ADD){
                 ans = x[rs1] + x[rs2];
@@ -320,7 +318,9 @@ public:
             }else if(t == AND){
                 ans = x[rs1] & x[rs2];
             }
-            MEM(R,ans,rd);
+            B_.ans = ans;
+            B_.offset = rd;
+            MEM(B_);
     }else if(BT == I){
             unsigned int rd = (command >> 7) & 31;
             unsigned int rs1 = (command >> 15) & 31;
@@ -328,73 +328,105 @@ public:
             int ans = 0;
             imm110 = sext(12,imm110);
             type t = gettokentype(command);
+            B_.t = t;
             if(t == LB){
                 unsigned int buffer =  x[rs1] + imm110;
                 ans = memory[buffer];
                 ans = sext(8,ans);
                 //x[rd]=ans;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == JALR){
                 unsigned int t_ = pc + 4;
                 pc = (x[rs1] + imm110) & (~1);
                 pc -= 4;
                 //x[rd]=t_;
-                if(rd)MEM(I,t_,rd);
+                B_.ans = t_;
+                B_.offset = rd;
+                if(rd)MEM(B_);
             }else if(t == LH){
                 unsigned int pos = x[rs1] + imm110;
                 unsigned int tmp = (memory[pos + 1] << 8) + memory[pos];
                 tmp = sext(16,tmp);
                 //x[rd] = tmp;
-                MEM(I,tmp,rd);
+                B_.ans = tmp;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == LW){
                 unsigned int pos = x[rs1] + imm110;
                 unsigned int tmp = (memory[pos + 3] << 24) + (memory[pos + 2] << 16) + (memory[pos + 1] << 8) + memory[pos];
                 //x[rd]=tmp;
-                MEM(I,tmp,rd);
+                B_.ans = tmp;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == LBU){
                 unsigned int buffer =  (unsigned)x[rs1] + (unsigned)imm110;
                 ans = memory[buffer];
                 //x[rd] = ans;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == LHU){
                 unsigned int pos = (unsigned)x[rs1] + imm110;
                 unsigned int tmp = (memory[pos + 1] << 8) + memory[pos];
                 //x[rd]=tmp;
-                MEM(I,tmp,rd);
+                B_.ans = tmp;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == ADDI){
                 ans = x[rs1] + imm110;
                 //x[rd]=ans;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == SLTI){
                 ans = (x[rs1] < imm110);
                 //x[rd]=ans;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == SLTIU){
                 ans = ((unsigned)x[rs1] < (unsigned)imm110);
                 //x[rd]=ans;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
             }else if(t == XORI){
                 ans = x[rs1] ^ imm110;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
                 //
             }else if(t == ANDI){
                 ans = x[rs1] & imm110;
-                MEM(I,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                MEM(B_);
                 //
             }
             else if(t == SLLI){
                 unsigned int rs2 = (command >> 20) & 31;
                 ans = x[rs1] << rs2;
                 ////printf(" %u\n",rs2);
-                MEM(R,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                B_.BT = R;
+                MEM(B_);
             }else if(t == SRLI){
                 unsigned int rs2 = (command >> 20) & 31;
                 ans = (unsigned)x[rs1] >> (unsigned)rs2;
-                MEM(R,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                B_.BT = R;
+                MEM(B_);
             }else if(t == SRAI){
                 unsigned int rs2 = (command >> 20) & 31;
                 ans = x[rs1] >> rs2;
-                MEM(R,ans,rd);
+                B_.ans = ans;
+                B_.offset = rd;
+                B_.BT = R;
+                MEM(B_);
             }
         }else if(BT == S){
             unsigned int rs1 = (command >> 15) & 31;
@@ -404,18 +436,28 @@ public:
             unsigned int imm = (imm115 << 5) + imm40;
             imm = sext(12,imm);
             type t = gettokentype(command);
+            B_.t = t;
             if(t == SB){
                 unsigned int offset = x[rs1] + imm;
                 //memory[offset] = (x[rs2] & ((1 << 8) - 1));
-                MEM(S,(x[rs2] & ((1 << 8) - 1)),offset,1);
+                B_.ans = (x[rs2] & ((1 << 8) - 1));
+                B_.offset = offset;
+                B_.len = 1;
+                MEM(B_);
             }else if(t == SH){
                 unsigned int offset = x[rs1] + imm;
                 //memory[offset] = (x[rs2] & ((1 << 16) - 1));
-                MEM(S,(x[rs2] & ((1 << 16) - 1)),offset,2);
+                B_.ans = (x[rs2] & ((1 << 16) - 1));
+                B_.offset = offset;
+                B_.len = 2;
+                MEM(B_);
             }else if(t == SW){
                 unsigned int offset = x[rs1] + imm;
                 //memory[offset] = x[rs2];
-                MEM(S,x[rs2],offset,4);
+                B_.ans = x[rs2];
+                B_.offset = offset;
+                B_.len = 4;
+                MEM(B_);
             }
         }else if(BT == B){
             unsigned int rs1 = (command >> 15) & 31;
@@ -427,7 +469,6 @@ public:
                 if(x[rs1] == x[rs2])pc += imm - 4;
             }else if(t == BNE){
                 if(x[rs1] != x[rs2])pc += imm - 4;
-
             }else if(t == BLT){
                 if(x[rs1] < x[rs2])pc += imm - 4;
             }else if(t == BGE){
@@ -439,7 +480,7 @@ public:
             }else if(t == BGEU){
                 if((unsigned)x[rs1] >= (unsigned)x[rs2])pc += imm - 4;
             }
-            MEM(B,0,0);
+            MEM(B_);
         }else if(BT == U){
             unsigned int rd = (command >> 7) & 31;
             unsigned int imm3112 = (command >> 12) << 12;
@@ -452,7 +493,9 @@ public:
                 ans = imm3112;
                 //x[rd] = ans;
             }
-            MEM(U,ans,rd);
+            B_.ans = ans;
+            B_.offset = rd;
+            MEM(B_);
         }else if (BT == J){
             unsigned int imm = ((command >> 31) << 20 ) + (((command >> 12) & 255) << 12) + (((command >> 20) & 1) << 11) + (((command >> 21) & 1023) << 1);
             unsigned int rd = (command >> 7) & 31;
@@ -460,13 +503,19 @@ public:
             unsigned int ans = pc + 4;
             pc += imm - 4;
             //x[rd] = ans;
-            if(rd)MEM(J,ans,rd);
+            B_.ans = ans;
+            B_.offset = rd;
+            if(rd)MEM(B_);
         }
     }
-    void MEM(BIG_TYPE BT,unsigned int ans, unsigned int offset,int len = 0){
+    void MEM(BUFFER A){
+        unsigned int ans = A.ans;
+        unsigned int offset = A.offset;
+        BIG_TYPE BT = A.BT;
         if(BT == R)WB(BT,ans,offset);
         else if(BT == I)WB(BT,ans,offset);
         else if(BT == S){
+            int len = A.len;
             memory[offset] = ans & 255;
             if(len > 1)memory[offset + 1] = (ans >> 8) & 255;
             if(len > 2)memory[offset + 2] = (ans >> 16) & 255;

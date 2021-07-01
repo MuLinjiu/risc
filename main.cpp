@@ -27,7 +27,7 @@ void INPUT(){
 }
 
 int main(){
-    //freopen(".data", "r", stdin);
+    //freopen("statement_test.data", "r", stdin);
     //freopen("2.txt","w",stdout);
     INPUT();
     Si.RUN();
